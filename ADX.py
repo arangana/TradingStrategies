@@ -7,18 +7,20 @@ import numpy as np
 def myTradingSystem(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity, settings):
 
     '''
-    ADX Period - 14 is the most commonly used.
+    ADX Period - 14 is the most commonly used. Set as necessary - 100 is max.
     NOTE - Please set the correct value for ADX_period in the settings funcion.
     '''
-    ADX_period = settings['ADX_period'] # OPTIMIZE HERE
+    ADX_period = 30 # OPTIMIZE HERE
 
     settings['TradeDay'] = settings['TradeDay'] + 1
     print 'Executing trade for day ', settings['TradeDay'], ' on trade date ', DATE[settings['lookback']-1]
 
     # Compute ADX for each market
     num_markets = settings['num_markets']
-    for market in range(num_markets):
-        calculate_ADX(market, HIGH[:,market:market+1], LOW[:,market:market+1], CLOSE[:,market:market+1], settings, ADX_period)
+    for market in range(num_markets): 
+        end = settings['lookback']
+        start = end - (2*ADX_period)
+        calculate_ADX(market, HIGH[start:end,market:market+1], LOW[start:end,market:market+1], CLOSE[start:end,market:market+1], settings, ADX_period)
 
     # Execute trades based on trading strategy
     weights = execute_trade(settings['ADX'], CLOSE, ADX_period)
@@ -40,7 +42,8 @@ def mySettings():
     'F_S','F_SB', 'F_SF', 'F_SI', 'F_SM', 'F_TU', 'F_TY', 'F_US','F_W', 'F_XX',
     'F_YM']
     settings['budget'] = 10**6
-    settings['slippage'] = 0.05    
+    settings['slippage'] = 0.05
+    settings['lookback'] = 200
 
     ### Custom Fields ###
     num_markets = len(settings['markets'])
@@ -54,10 +57,6 @@ def mySettings():
     settings['-DM14'] = [0.0] * settings['num_markets']
     # ADX values for each of the selected markets ordered by index
     settings['ADX'] = [np.nan] * settings['num_markets']
-
-    # Set Period here
-    settings['ADX_period'] = 14
-    settings['lookback'] = settings['ADX_period'] * 2
 
     return settings
 
