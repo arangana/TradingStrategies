@@ -8,7 +8,6 @@ def myTradingSystem(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity, setting
 
     '''
     ADX Period - 14 is the most commonly used. Set as necessary - 100 is max.
-    NOTE - Please set the correct value for ADX_period in the settings funcion.
     '''
     ADX_period = 30 # OPTIMIZE HERE
 
