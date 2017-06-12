@@ -1,7 +1,7 @@
 function [p, settings] = ADX(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity, settings)
     % Trading System Attributes
     settings.markets     = {'CASH', 'F_AD', 'F_BO', 'F_BP', 'F_C', 'F_CC', 'F_CD', 'F_CL', 'F_CT', 'F_DX', 'F_EC', 'F_ED', 'F_ES', 'F_FC', 'F_FV', 'F_GC', 'F_HG', 'F_HO', 'F_JY', 'F_KC', 'F_LB', 'F_LC', 'F_LN', 'F_MD', 'F_MP', 'F_NG', 'F_NQ', 'F_NR', 'F_O', 'F_OJ', 'F_PA', 'F_PL', 'F_RB', 'F_RU', 'F_S', 'F_SB', 'F_SF', 'F_SI', 'F_SM', 'F_TU', 'F_TY', 'F_US', 'F_W', 'F_XX', 'F_YM'};
-    %settings.samplebegin = 20160321;
+    %settings.samplebegin = 20100321;
     %settings.sampleend = 20170320;
     settings.budget = 1000000;
     settings.slippage = 0.05;
@@ -72,7 +72,8 @@ function weights = execute_trade(market_ADXs, CLOSE, ADX_period)
             prop(market) = 0.0;
         end  
     end
-    
+    %disp(num2str(prop(5)));
+    %disp(num2str(market_ADXs(5)));
     weights = prop;
     
 end
