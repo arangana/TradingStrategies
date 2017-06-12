@@ -9,7 +9,7 @@ def myTradingSystem(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity, setting
     '''
     ADX Period - 14 is the most commonly used. Set as necessary - 100 is max.
     '''
-    ADX_period = 30 # OPTIMIZE HERE
+    ADX_period = 30 #%[7:7:100]#
 
     settings['TradeDay'] = settings['TradeDay'] + 1
     print 'Executing trade for day ', settings['TradeDay'], ' on trade date ', DATE[settings['lookback']-1]
@@ -32,14 +32,16 @@ def mySettings():
 
     settings= {}
 
-    #settings['beginInSample'] = '20160321'
+    #settings['beginInSample'] = '20100321'
     #settings['endInSample'] = '20170320'
+    
     settings['markets']  = ['CASH','F_AD', 'F_BO', 'F_BP', 'F_C', 'F_CC', 'F_CD',
     'F_CL', 'F_CT', 'F_DX', 'F_EC', 'F_ED', 'F_ES', 'F_FC','F_FV', 'F_GC',
     'F_HG', 'F_HO', 'F_JY', 'F_KC', 'F_LB', 'F_LC', 'F_LN', 'F_MD', 'F_MP',
     'F_NG', 'F_NQ', 'F_NR', 'F_O', 'F_OJ', 'F_PA', 'F_PL', 'F_RB', 'F_RU',
     'F_S','F_SB', 'F_SF', 'F_SI', 'F_SM', 'F_TU', 'F_TY', 'F_US','F_W', 'F_XX',
     'F_YM']
+    
     settings['budget'] = 10**6
     settings['slippage'] = 0.05
     settings['lookback'] = 200
@@ -92,6 +94,7 @@ def execute_trade(market_ADXs, CLOSE, ADX_period):
         # No strong trend, no market exposure
         else:
             prop[market] = 0.0
+            
     weights = np.ndarray((num_markets,), buffer=np.array(prop), dtype=float)
     return weights
 
@@ -187,7 +190,7 @@ def calculate_DM_plus(currHigh, currLow, prevHigh, prevLow):
     return 0.0
 
 
-def calculate_DM_minus(currHigh, currLow, prevHigh, prevLow):
+def calculate_DM_minus(currHigh, currLow, prevHigh, prevLow, market):
     prevLow_minus_currLow = prevLow - currLow
     if (prevLow_minus_currLow <= 0):
         return 0.0
@@ -199,6 +202,7 @@ def calculate_DM_minus(currHigh, currLow, prevHigh, prevLow):
     
 def calculate_DX(plus_DI, minus_DI):
     return 100.0 * (abs(plus_DI - minus_DI)) / (plus_DI + minus_DI)
+
 
 
 if __name__ == '__main__':
