@@ -72,8 +72,7 @@ function weights = execute_trade(market_ADXs, CLOSE, ADX_period)
             prop(market) = 0.0;
         end  
     end
-    %disp(num2str(prop(5)));
-    %disp(num2str(market_ADXs(5)));
+
     weights = prop;
     
 end
