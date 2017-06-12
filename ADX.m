@@ -24,7 +24,7 @@ function [p, settings] = ADX(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity
     %{ 
     ADX Period - 14 is the most commonly used. Set as necessary - 100 is max.
     %}
-    ADX_period = 30; % OPTIMIZE HERE
+    ADX_period = 30; %#[7:7:100]#
     
     
     settings.TradeDay = settings.TradeDay + 1;
