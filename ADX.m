@@ -1,15 +1,15 @@
 function [p, settings] = ADX(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity, settings)
     % Trading System Attributes
-    settings.markets     = {'AAPL', 'BRKB', 'F_NG', 'F_GC'};
-    settings.samplebegin = 20160321;
-    settings.sampleend   = 20170320;
-    settings.lookback    = 28;
+    settings.markets     = {'CASH', 'F_AD', 'F_BO', 'F_BP', 'F_C', 'F_CC', 'F_CD', 'F_CL', 'F_CT', 'F_DX', 'F_EC', 'F_ED', 'F_ES', 'F_FC', 'F_FV', 'F_GC', 'F_HG', 'F_HO', 'F_JY', 'F_KC', 'F_LB', 'F_LC', 'F_LN', 'F_MD', 'F_MP', 'F_NG', 'F_NQ', 'F_NR', 'F_O', 'F_OJ', 'F_PA', 'F_PL', 'F_RB', 'F_RU', 'F_S', 'F_SB', 'F_SF', 'F_SI', 'F_SM', 'F_TU', 'F_TY', 'F_US', 'F_W', 'F_XX', 'F_YM'};
+    %settings.samplebegin = 20160321;
+    %settings.sampleend = 20170320;
     settings.budget = 1000000;
     settings.slippage = 0.05;
-
+    settings.lookback = 200;    
+    
     %%% Custom Fields %%%
     settings.num_markets = length(settings.markets);
-    if (DATE(1) == settings.samplebegin)
+    if (not(isfield(settings, 'TradeDay')))
         settings.TradeDay = 0;
         % 14 day smoothed True Range
         settings.TR14 = zeros(1,settings.num_markets);
@@ -21,29 +21,39 @@ function [p, settings] = ADX(DATE, OPEN, HIGH, LOW, CLOSE, VOL, exposure, equity
         settings.ADX = NaN(1,settings.num_markets);
     end
     
+    %{ 
+    ADX Period - 14 is the most commonly used. Set as necessary - 100 is max.
+    %}
+    ADX_period = 30; % OPTIMIZE HERE
+    
+    
     settings.TradeDay = settings.TradeDay + 1;
     disp(['Executing trade for day ', num2str(settings.TradeDay), ' on trade date ', num2str(DATE(settings.lookback))]);
 
     % Compute ADX for each market
     for market = 1:settings.num_markets
-        settings = calculate_ADX(market, HIGH(:,market), LOW(:,market), CLOSE(:,market), settings);
+        endDate = settings.lookback;
+        startDate = endDate - endDate + 1;
+        settings = calculate_ADX(market, HIGH(startDate:endDate,market), LOW(startDate:endDate,market), CLOSE(startDate:endDate,market), settings, ADX_period);
     end
     
     % Execute trades based on trading strategy
-    p = execute_trade(settings.ADX, CLOSE);
+    p = execute_trade(settings.ADX, CLOSE, ADX_period);
      
 end
 
-function weights = execute_trade(market_ADXs, CLOSE)
+function weights = execute_trade(market_ADXs, CLOSE, ADX_period)
 
-    CURRENT_DAY = length(CLOSE);
+    CURRENT_DAY = length(CLOSE(:,1));
     num_markets = length(market_ADXs);
     ADX_sum = nansum(market_ADXs);
     % Proportion of capital for market exposure for each equity
     prop = zeros(1,num_markets);
     
     % 14 day moving average of closing prices
-    avg = sum(CLOSE(14:27,:)) / 14.0;
+    endDay = (ADX_period * 2) - 1;
+    startDay = endDay - ADX_period + 1;
+    avg = sum(CLOSE(startDay:endDay,:)) / ADX_period;
     
     for market = 1:num_markets
         % There is a strong trend
@@ -64,11 +74,12 @@ function weights = execute_trade(market_ADXs, CLOSE)
     end
     
     weights = prop;
-
+    
 end
 
 % Details of ADX calculations for a given market
-function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
+function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings, ADX_period)
+
     % Components required to calculate ADX - True Range, Directional Movements and Directional Indices
     tradeDayVals.TR = 0.0;
     tradeDayVals.plus_DM = 0.0;
@@ -83,7 +94,7 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
     
     % First calculation of ADX - i.e. no previous values of ADX available
     elseif (isnan(settings.ADX(market)))
-        for trade_day = 2:15
+        for trade_day = 2:(ADX_period + 1)
             % Add up / accumulate true range and directional movement values for first 14 days  
             settings.TR14(market)= settings.TR14(market) + calculate_TR(CLOSE(trade_day-1), HIGH(trade_day), LOW(trade_day));
             settings.plus_DM14(market) = settings.plus_DM14(market) + calculate_DM_plus(HIGH(trade_day), LOW(trade_day), HIGH(trade_day-1), LOW(trade_day-1));
@@ -95,7 +106,7 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
         tradeDayVals.minus_DI = 100.0 * settings.minus_DM14(market) / settings.TR14(market);
         settings.ADX(market) = calculate_DX(tradeDayVals.plus_DI, tradeDayVals.minus_DI);
         
-        for trade_day = 16:28
+        for trade_day = (ADX_period + 2):(ADX_period * 2)
 
             % True range and directional movements for the current trade day
             tradeDayVals.TR = calculate_TR(CLOSE(trade_day-1), HIGH(trade_day), LOW(trade_day));
@@ -103,9 +114,9 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
             tradeDayVals.minus_DM = calculate_DM_minus(HIGH(trade_day), LOW(trade_day), HIGH(trade_day-1), LOW(trade_day-1));
 
             % Wilder smoothing techniques to calculate 14 day smoothed true range and directional movements
-            settings.TR14(market) = wilder_smooth(settings.TR14(market), tradeDayVals.TR);
-            settings.plus_DM14(market) = wilder_smooth(settings.plus_DM14(market), tradeDayVals.plus_DM);
-            settings.minus_DM14(market) = wilder_smooth(settings.minus_DM14(market), tradeDayVals.minus_DM); 
+            settings.TR14(market) = wilder_smooth(settings.TR14(market), tradeDayVals.TR, ADX_period);
+            settings.plus_DM14(market) = wilder_smooth(settings.plus_DM14(market), tradeDayVals.plus_DM, ADX_period);
+            settings.minus_DM14(market) = wilder_smooth(settings.minus_DM14(market), tradeDayVals.minus_DM, ADX_period); 
 
             % Directional indices for the current trade day
             tradeDayVals.plus_DI = 100.0 * settings.plus_DM14(market) / settings.TR14(market);
@@ -117,7 +128,7 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
             %disp(sprintf('ADX vals accum: (%f, %f, %f, %f, %f)', settings.ADX));
         end
         % First calculation of ADX - average of first 14 DX values
-        settings.ADX(market) = settings.ADX(market) / 14.0;
+        settings.ADX(market) = settings.ADX(market) / ADX_period;
         
     % Subsequent calculations of ADX
     else
@@ -130,9 +141,9 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
         tradeDayVals.minus_DM = calculate_DM_minus(HIGH(CURRENT_DAY), LOW(CURRENT_DAY), HIGH(PREVIOUS_DAY), LOW(PREVIOUS_DAY));
 
         % Wilder smoothing techniques to calculate 14 day smoothed true range and directional movements
-        settings.TR14(market) = wilder_smooth(settings.TR14(market), tradeDayVals.TR);
-        settings.plus_DM14(market) = wilder_smooth(settings.plus_DM14(market), tradeDayVals.plus_DM);
-        settings.minus_DM14(market) = wilder_smooth(settings.minus_DM14(market), tradeDayVals.minus_DM); 
+        settings.TR14(market) = wilder_smooth(settings.TR14(market), tradeDayVals.TR, ADX_period);
+        settings.plus_DM14(market) = wilder_smooth(settings.plus_DM14(market), tradeDayVals.plus_DM, ADX_period);
+        settings.minus_DM14(market) = wilder_smooth(settings.minus_DM14(market), tradeDayVals.minus_DM, ADX_period); 
         
         % Directional indices for the current trade day
         tradeDayVals.plus_DI = 100.0 * settings.plus_DM14(market) / settings.TR14(market);
@@ -140,18 +151,18 @@ function ret = calculate_ADX(market, HIGH, LOW, CLOSE, settings)
         tradeDayVals.DX = calculate_DX(tradeDayVals.plus_DI, tradeDayVals.minus_DI);
         
         % Final ADX value for current trade day
-        settings.ADX(market) = ((settings.ADX(market) * 13.0) + (tradeDayVals.DX)) / 14.0;
+        settings.ADX(market) = ((settings.ADX(market) * (ADX_period-1)) + (tradeDayVals.DX)) / ADX_period;
         
     end
-
+    
     ret = settings;
     
 end
 
 
-function ret = wilder_smooth(prev_val, curr_val)
+function ret = wilder_smooth(prev_val, curr_val, ADX_period)
 
-    ret = prev_val - (prev_val / 14.0) + curr_val;
+    ret = prev_val - (prev_val / ADX_period) + curr_val;
 
 end
 
