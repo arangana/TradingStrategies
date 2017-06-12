@@ -94,7 +94,7 @@ def execute_trade(market_ADXs, CLOSE, ADX_period):
         # No strong trend, no market exposure
         else:
             prop[market] = 0.0
-            
+
     weights = np.ndarray((num_markets,), buffer=np.array(prop), dtype=float)
     return weights
 
@@ -190,7 +190,7 @@ def calculate_DM_plus(currHigh, currLow, prevHigh, prevLow):
     return 0.0
 
 
-def calculate_DM_minus(currHigh, currLow, prevHigh, prevLow, market):
+def calculate_DM_minus(currHigh, currLow, prevHigh, prevLow):
     prevLow_minus_currLow = prevLow - currLow
     if (prevLow_minus_currLow <= 0):
         return 0.0
